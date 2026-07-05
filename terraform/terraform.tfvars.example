@@ -1,0 +1,37 @@
+# Example Terraform values file
+# Copy this to terraform.tfvars and customize for your environment
+# DO NOT commit terraform.tfvars to git (it contains secrets)
+
+aws_region   = "us-east-1"
+environment  = "dev"
+project_name = "petclinic"
+cluster_name = "petclinic-prod"
+
+# VPC Configuration
+vpc_cidr            = "10.0.0.0/16"
+enable_nat_gateway  = false  # Set to true for production (costs money)
+
+# Kubernetes Configuration
+kubernetes_version = "1.31"
+
+# Node Groups - customize as needed
+node_groups = {
+  general = {
+    desired_size   = 2
+    min_size       = 1
+    max_size       = 5
+    instance_types = ["t3.medium"]  # t3.micro for free tier, t3.medium for more resources
+    disk_size      = 50
+    labels = {
+      workload = "general"
+    }
+  }
+}
+
+# Tags for resource management
+common_tags = {
+  Project     = "petclinic"
+  Environment = "dev"
+  ManagedBy   = "terraform"
+  CostCenter  = "engineering"
+}

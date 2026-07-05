@@ -1,0 +1,32 @@
+{
+  "name": "Spring PetClinic AI DevOps",
+  "description": "Production-grade DevOps project: EKS, Terraform, ArgoCD, observability",
+  "model": "claude-sonnet-4-6",
+  "permissions": {
+    "allowlist": [
+      "bash",
+      "powershell",
+      "read",
+      "glob",
+      "grep",
+      "edit",
+      "write",
+      "agent",
+      "skill"
+    ]
+  },
+  "hooks": {
+    "pre-commit": [
+      "terraform fmt -check",
+      "yamllint kubernetes/",
+      "hadolint docker/Dockerfile*"
+    ]
+  },
+  "ignore": [
+    "terraform/.terraform/",
+    "**/*.tfstate*",
+    ".git/",
+    "node_modules/",
+    "target/"
+  ]
+}

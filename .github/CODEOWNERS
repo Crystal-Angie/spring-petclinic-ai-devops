@@ -1,0 +1,36 @@
+# Code Ownership and Review Requirements
+# GitHub automatically requests reviews from these owners when relevant files are changed
+
+# Infrastructure and Terraform
+terraform/                    @Crystal-Angie
+*.tfvars                      @Crystal-Angie
+terraform.tfvars.example      @Crystal-Angie
+
+# Kubernetes and Helm
+kubernetes/                   @Crystal-Angie
+helm/                         @Crystal-Angie
+
+# Docker and Container Configuration
+docker/                       @Crystal-Angie
+Dockerfile*                   @Crystal-Angie
+docker-compose.yml            @Crystal-Angie
+
+# CI/CD Pipelines
+.github/workflows/            @Crystal-Angie
+
+# Project Configuration
+CLAUDE.md                      @Crystal-Angie
+.claude/                       @Crystal-Angie
+.gitignore                     @Crystal-Angie
+
+# Documentation
+docs/                         @Crystal-Angie
+*.md                          @Crystal-Angie
+
+# Build and Scripts
+scripts/                       @Crystal-Angie
+mvnw                          @Crystal-Angie
+pom.xml                       @Crystal-Angie
+
+# Default owner for any other files
+*                             @Crystal-Angie

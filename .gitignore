@@ -1,0 +1,70 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Jenv
+.java-version
+
+# Eclipse
+.settings/
+.classpath
+.project
+
+# IntelliJ IDEA
+.idea
+*.iml
+
+# Visual Studio Code
+.factorypath
+
+# Branch switching
+generated/
+
+**/.DS_Store
+
+# Terraform
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform/
+**/.terraform.lock.hcl
+terraform/environments/*.tfvars
+!terraform/environments/*.tfvars.example
+**/*.tfvars
+!**/*.tfvars.example
+
+# AWS / Credentials
+.aws/credentials
+.aws/config
+terraform/terraform.tfvars
+aws_credentials
+
+# LocalStack
+.localstack/
+localstack_logs/
+
+# Kubernetes / Helm
+helm-*-*.tgz
+*.kubeconfig
+kubeconfig
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS-specific
+Thumbs.db
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+*.log
