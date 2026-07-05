@@ -48,12 +48,12 @@ variable "kubernetes_version" {
 variable "node_groups" {
   description = "EKS node group configuration"
   type = map(object({
-    desired_size    = number
-    min_size        = number
-    max_size        = number
-    instance_types  = list(string)
-    disk_size       = number
-    labels          = map(string)
+    desired_size   = number
+    min_size       = number
+    max_size       = number
+    instance_types = list(string)
+    disk_size      = number
+    labels         = map(string)
   }))
   default = {
     general = {
