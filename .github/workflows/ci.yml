@@ -1,0 +1,117 @@
+name: CI — Build and Push
+
+# Triggers:
+#   push to main  → run tests, then build and push all 8 Docker images to ECR
+#   pull request  → run tests only (no Docker build, no ECR push)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Test
+  # Compiles and tests all modules. Runs on every push and every PR.
+  # A failing test blocks all downstream jobs.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven   # caches ~/.m2 between runs — avoids re-downloading dependencies
+
+      - name: Run tests
+        run: |
+          # The parent pom.xml declares modules without the 'app/' prefix,
+          # so Maven must be invoked from a directory where the module dirs
+          # are direct siblings of the pom. Copying pom.xml into app/ achieves this.
+          cp pom.xml app/
+          mvn -f app/pom.xml test --no-transfer-progress
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Build and push Docker images
+  # Runs only when a commit lands on main (not on PRs).
+  # Each of the 8 services builds in parallel via a matrix strategy.
+  #
+  # Prerequisites — add these secrets in GitHub → Settings → Secrets:
+  #   AWS_ACCESS_KEY_ID      IAM user access key with ECR push permissions
+  #   AWS_SECRET_ACCESS_KEY  Corresponding secret key
+  #
+  # Production note: long-lived access keys are acceptable for now, but the
+  # production upgrade is GitHub OIDC federation — no stored secrets, short-lived
+  # tokens. That will be implemented in Phase 6 alongside the real AWS deploy.
+  # ---------------------------------------------------------------------------
+  build-and-push:
+    name: Build & Push — ${{ matrix.service }}
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    strategy:
+      # fail-fast: false means if one service fails to build, the others continue.
+      # You see all failures at once rather than stopping at the first.
+      fail-fast: false
+      matrix:
+        include:
+          - service: spring-petclinic-api-gateway
+            ecr_repo: petclinic/api-gateway
+          - service: spring-petclinic-customers-service
+            ecr_repo: petclinic/customers-service
+          - service: spring-petclinic-vets-service
+            ecr_repo: petclinic/vets-service
+          - service: spring-petclinic-visits-service
+            ecr_repo: petclinic/visits-service
+          - service: spring-petclinic-config-server
+            ecr_repo: petclinic/config-server
+          - service: spring-petclinic-discovery-server
+            ecr_repo: petclinic/discovery-server
+          - service: spring-petclinic-admin-server
+            ecr_repo: petclinic/admin-server
+          - service: spring-petclinic-genai-service
+            ecr_repo: petclinic/genai-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+        # Outputs: registry = {account_id}.dkr.ecr.{region}.amazonaws.com
+
+      - name: Build and push Docker image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            --build-arg SERVICE_NAME=${{ matrix.service }} \
+            -t $REGISTRY/${{ matrix.ecr_repo }}:$IMAGE_TAG \
+            -t $REGISTRY/${{ matrix.ecr_repo }}:latest \
+            .
+
+          # Push both tags: the SHA tag is immutable (used in Helm for rollbacks),
+          # latest always points to the most recent successful main build.
+          docker push $REGISTRY/${{ matrix.ecr_repo }}:$IMAGE_TAG
+          docker push $REGISTRY/${{ matrix.ecr_repo }}:latest
