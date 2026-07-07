@@ -124,27 +124,6 @@ resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
   role       = aws_iam_role.eks_node_role.name
 }
 
-# Allow nodes to pull images from ECR
-resource "aws_iam_role_policy" "ecr_pull_policy" {
-  name_prefix = "${var.cluster_name}-ecr-pull-"
-  role        = aws_iam_role.eks_node_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchGetImage",
-          "ecr:GetDownloadUrlForLayer"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
 # EKS Node Group
 # The actual EC2 instances that run containers
 resource "aws_eks_node_group" "main" {
@@ -182,8 +161,7 @@ resource "aws_eks_node_group" "main" {
   depends_on = [
     aws_iam_role_policy_attachment.eks_worker_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
-    aws_iam_role_policy_attachment.eks_container_registry_policy,
-    aws_iam_role_policy.ecr_pull_policy
+    aws_iam_role_policy_attachment.eks_container_registry_policy
   ]
 }
 

@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 
   # Backend configuration for storing Terraform state
@@ -89,28 +93,28 @@ module "ecr" {
     gateway = {
       name                       = "petclinic/api-gateway"
       image_tag_mutability       = "MUTABLE"
-      scan_on_push               = false
+      scan_on_push               = true
       keep_image_count           = 10
       untagged_image_expiry_days = 7
     }
     customers = {
       name                       = "petclinic/customers-service"
       image_tag_mutability       = "MUTABLE"
-      scan_on_push               = false
+      scan_on_push               = true
       keep_image_count           = 10
       untagged_image_expiry_days = 7
     }
     visits = {
       name                       = "petclinic/visits-service"
       image_tag_mutability       = "MUTABLE"
-      scan_on_push               = false
+      scan_on_push               = true
       keep_image_count           = 10
       untagged_image_expiry_days = 7
     }
     vets = {
       name                       = "petclinic/vets-service"
       image_tag_mutability       = "MUTABLE"
-      scan_on_push               = false
+      scan_on_push               = true
       keep_image_count           = 10
       untagged_image_expiry_days = 7
     }
