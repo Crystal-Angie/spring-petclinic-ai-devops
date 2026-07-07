@@ -118,6 +118,34 @@ module "ecr" {
       keep_image_count           = 10
       untagged_image_expiry_days = 7
     }
+    config = {
+      name                       = "petclinic/config-server"
+      image_tag_mutability       = "MUTABLE"
+      scan_on_push               = true
+      keep_image_count           = 10
+      untagged_image_expiry_days = 7
+    }
+    discovery = {
+      name                       = "petclinic/discovery-server"
+      image_tag_mutability       = "MUTABLE"
+      scan_on_push               = true
+      keep_image_count           = 10
+      untagged_image_expiry_days = 7
+    }
+    admin = {
+      name                       = "petclinic/admin-server"
+      image_tag_mutability       = "MUTABLE"
+      scan_on_push               = true
+      keep_image_count           = 10
+      untagged_image_expiry_days = 7
+    }
+    genai = {
+      name                       = "petclinic/genai-service"
+      image_tag_mutability       = "MUTABLE"
+      scan_on_push               = true
+      keep_image_count           = 10
+      untagged_image_expiry_days = 7
+    }
   }
 
   tags = var.common_tags
