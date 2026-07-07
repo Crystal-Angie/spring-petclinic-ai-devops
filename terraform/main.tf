@@ -151,6 +151,18 @@ module "ecr" {
   tags = var.common_tags
 }
 
+# ALB Module — IAM role for the AWS Load Balancer Controller (Phase 5)
+module "alb" {
+  source = "./modules/alb"
+
+  cluster_name            = local.cluster_name
+  oidc_provider_arn       = module.eks.oidc_provider_arn
+  cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
+
+  depends_on = [module.eks]
+  tags       = var.common_tags
+}
+
 # Monitoring Module (Phase 6 - to be implemented)
 # module "monitoring" {
 #   source = "./modules/monitoring"

@@ -3,10 +3,20 @@ image:
 
 containerPort: 8080
 
-# LoadBalancer exposes this service externally — it is the only public entry point
+# ClusterIP — the Ingress (ALB) handles all external traffic
 service:
-  type: LoadBalancer
-  port: 80
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+  # host: app.yourdomain.com  # uncomment and set in Phase 7 when domain is ready
+  host: ""
 
 env:
   - name: SPRING_PROFILES_ACTIVE

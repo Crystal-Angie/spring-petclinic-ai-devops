@@ -1,0 +1,39 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "petclinic-service.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "petclinic-service.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.host }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "petclinic-service.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+  {{- else }}
+  # No host set — ALB accepts all traffic on port 80/443
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "petclinic-service.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+  {{- end }}
+{{- end }}
