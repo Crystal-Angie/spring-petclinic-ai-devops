@@ -1,0 +1,30 @@
+# Exclude everything that isn't needed to build the application JAR.
+# Keeping the build context small speeds up 'docker build' and reduces
+# the risk of accidentally shipping secrets or build artifacts.
+
+# Infrastructure code
+terraform/
+kubernetes/
+.github/
+.claude/
+docs/
+docker/
+scripts/
+memory/
+
+# Maven build outputs (we build inside the container, not from local targets)
+app/**/target/
+
+# Dev/local config
+*.env
+.env*
+docker-compose*.yml
+
+# Version control
+.git/
+.gitignore
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
