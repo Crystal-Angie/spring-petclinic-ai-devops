@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: visits-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: petclinic
+  source:
+    repoURL: https://github.com/Crystal-Angie/spring-petclinic-ai-devops
+    targetRevision: main
+    path: kubernetes/helm-charts/petclinic-service
+    helm:
+      valueFiles:
+        - values/visits-service.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: petclinic
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

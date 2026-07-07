@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: petclinic
+  namespace: argocd
+spec:
+  description: Spring PetClinic microservices
+  sourceRepos:
+    - https://github.com/Crystal-Angie/spring-petclinic-ai-devops
+  destinations:
+    - namespace: petclinic
+      server: https://kubernetes.default.svc
+  # Restrict what resource types ArgoCD can create in this project
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: ServiceAccount
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: config-server
+  namespace: argocd
+  annotations:
+    # Wave 1: config-server starts first — all other services depend on it at boot
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: petclinic
+  source:
+    repoURL: https://github.com/Crystal-Angie/spring-petclinic-ai-devops
+    targetRevision: main
+    path: kubernetes/helm-charts/petclinic-service
+    helm:
+      valueFiles:
+        - values/config-server.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: petclinic
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,12 @@
+image:
+  repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/petclinic/customers-service
+
+containerPort: 8081
+service:
+  port: 8081
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "kubernetes"
+  - name: CONFIG_SERVER_URL
+    value: "http://config-server:8888"

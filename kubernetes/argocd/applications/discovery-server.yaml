@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: discovery-server
+  namespace: argocd
+  annotations:
+    # Wave 2: starts after config-server, before business services register with Eureka
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: petclinic
+  source:
+    repoURL: https://github.com/Crystal-Angie/spring-petclinic-ai-devops
+    targetRevision: main
+    path: kubernetes/helm-charts/petclinic-service
+    helm:
+      valueFiles:
+        - values/discovery-server.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: petclinic
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

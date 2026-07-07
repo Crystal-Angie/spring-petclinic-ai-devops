@@ -1,0 +1,31 @@
+image:
+  repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/petclinic/config-server
+
+containerPort: 8888
+service:
+  port: 8888
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 300m
+    memory: 512Mi
+
+# Longer delays — other services wait on this one at startup
+readinessProbe:
+  path: /actuator/health/readiness
+  initialDelaySeconds: 40
+  periodSeconds: 10
+  failureThreshold: 6
+
+livenessProbe:
+  path: /actuator/health/liveness
+  initialDelaySeconds: 80
+  periodSeconds: 15
+  failureThreshold: 3
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "kubernetes"

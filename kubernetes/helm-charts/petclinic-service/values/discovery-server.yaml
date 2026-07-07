@@ -1,0 +1,20 @@
+image:
+  repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/petclinic/discovery-server
+
+containerPort: 8761
+service:
+  port: 8761
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 300m
+    memory: 512Mi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "kubernetes"
+  - name: CONFIG_SERVER_URL
+    value: "http://config-server:8888"

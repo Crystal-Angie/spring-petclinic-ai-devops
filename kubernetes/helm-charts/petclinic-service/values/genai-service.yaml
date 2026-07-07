@@ -1,0 +1,21 @@
+image:
+  repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/petclinic/genai-service
+
+containerPort: 8084
+service:
+  port: 8084
+
+# AI workload — larger memory ceiling for model inference
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "kubernetes"
+  - name: CONFIG_SERVER_URL
+    value: "http://config-server:8888"
