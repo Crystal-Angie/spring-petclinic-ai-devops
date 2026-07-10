@@ -1,0 +1,33 @@
+grafana:
+  enabled: true
+  # Change this before deploying to real AWS — use a Kubernetes Secret in production
+  adminPassword: "petclinic-admin"
+  service:
+    type: ClusterIP
+
+alertmanager:
+  # Disabled for now — alerting rules are a Phase 8 concern
+  enabled: false
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+prometheus:
+  prometheusSpec:
+    # By default, Prometheus only watches ServiceMonitors in its own namespace.
+    # Setting these to empty ({}) makes it watch all namespaces — required
+    # so it can scrape the petclinic namespace from the monitoring namespace.
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelectorNilUsesHelmValues: false
+    retention: 15d
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi

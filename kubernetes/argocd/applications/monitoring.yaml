@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  annotations:
+    # Wave 0: monitoring infrastructure starts before application services
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: petclinic
+  # Multi-source: chart comes from the community Helm repo,
+  # values file comes from our Git repo — keeps config in version control
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 65.1.1
+      helm:
+        valueFiles:
+          - $values/kubernetes/monitoring/kube-prometheus-stack-values.yaml
+    - repoURL: https://github.com/Crystal-Angie/spring-petclinic-ai-devops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

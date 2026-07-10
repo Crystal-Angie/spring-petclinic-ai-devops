@@ -10,6 +10,7 @@ spec:
   selector:
     {{- include "petclinic-service.selectorLabels" . | nindent 4 }}
   ports:
-    - port: {{ .Values.service.port }}
+    - name: http
+      port: {{ .Values.service.port }}
       targetPort: {{ .Values.containerPort }}
       protocol: TCP
