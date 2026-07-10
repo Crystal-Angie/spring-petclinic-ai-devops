@@ -115,3 +115,45 @@ jobs:
           # latest always points to the most recent successful main build.
           docker push $REGISTRY/${{ matrix.ecr_repo }}:$IMAGE_TAG
           docker push $REGISTRY/${{ matrix.ecr_repo }}:latest
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Update image tags in Helm values files
+  # Runs after ALL 8 build-and-push matrix jobs complete successfully.
+  # Updates image.tag in each values file to the new git SHA, then commits
+  # back to main. ArgoCD detects the change and auto-deploys the new version.
+  # [skip ci] in the commit message prevents this push from triggering CI again.
+  # ---------------------------------------------------------------------------
+  update-image-tags:
+    name: Update image tags in Helm values
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Update image tags
+        run: |
+          for service in api-gateway customers-service vets-service visits-service \
+                         config-server discovery-server admin-server genai-service; do
+            yq -i ".image.tag = \"${{ github.sha }}\"" \
+              kubernetes/helm-charts/petclinic-service/values/${service}.yaml
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add kubernetes/helm-charts/petclinic-service/values/
+          git commit -m "chore: update image tags to ${{ github.sha }} [skip ci]"
+          git push
