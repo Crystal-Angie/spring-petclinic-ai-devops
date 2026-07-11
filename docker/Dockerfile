@@ -28,9 +28,9 @@ RUN mvn package -pl ${SERVICE_NAME} -am -DskipTests --no-transfer-progress
 # snapshot-dependencies, and application. Each becomes a separate Docker layer,
 # so a code-only change only rebuilds the tiny 'application' layer (~1-2 MB)
 # instead of the full JAR (~100 MB).
-RUN java -Djarmode=layertools \
+RUN java -Djarmode=tools \
     -jar ${SERVICE_NAME}/target/${SERVICE_NAME}-*.jar \
-    extract --destination /workspace/layers
+    extract --layers --launcher --destination /workspace/layers
 
 # ---- Stage 2: Runtime ----
 FROM eclipse-temurin:17-jre-alpine
