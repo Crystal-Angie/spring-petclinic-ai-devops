@@ -5,6 +5,11 @@ containerPort: 8888
 service:
   port: 8888
 
+# Config server intercepts all HTTP paths for config requests, which conflicts
+# with Spring Boot Actuator health paths. Use TCP probes to avoid the conflict.
+probeType: tcp
+probePort: 8888
+
 resources:
   requests:
     cpu: 100m
@@ -16,15 +21,17 @@ resources:
 # Longer delays — other services wait on this one at startup
 readinessProbe:
   path: /actuator/health/readiness
-  initialDelaySeconds: 40
+  initialDelaySeconds: 50
   periodSeconds: 10
   failureThreshold: 6
+  timeoutSeconds: 5
 
 livenessProbe:
   path: /actuator/health/liveness
-  initialDelaySeconds: 80
+  initialDelaySeconds: 90
   periodSeconds: 15
   failureThreshold: 3
+  timeoutSeconds: 5
 
 env:
   - name: SPRING_PROFILES_ACTIVE

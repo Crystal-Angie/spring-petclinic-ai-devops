@@ -10,6 +10,7 @@ service:
   port: 8080
 
 containerPort: 8080
+probePort: ~
 
 env: []
 
@@ -22,17 +23,21 @@ resources:
     memory: 1Gi
 
 # Paths only — port is always .Values.containerPort in the template
+probeType: http
+
 readinessProbe:
   path: /actuator/health/readiness
   initialDelaySeconds: 30
   periodSeconds: 10
   failureThreshold: 6
+  timeoutSeconds: 5
 
 livenessProbe:
   path: /actuator/health/liveness
   initialDelaySeconds: 60
   periodSeconds: 15
   failureThreshold: 3
+  timeoutSeconds: 5
 
 ingress:
   enabled: false
