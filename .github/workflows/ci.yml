@@ -46,19 +46,24 @@ jobs:
   # Runs only when a commit lands on main (not on PRs).
   # Each of the 8 services builds in parallel via a matrix strategy.
   #
-  # Prerequisites — add these secrets in GitHub → Settings → Secrets:
-  #   AWS_ACCESS_KEY_ID      IAM user access key with ECR push permissions
-  #   AWS_SECRET_ACCESS_KEY  Corresponding secret key
+  # Prerequisites — add this secret in GitHub → Settings → Secrets:
+  #   AWS_ROLE_ARN   ARN of the IAM role GitHub Actions assumes via OIDC
   #
-  # Production note: long-lived access keys are acceptable for now, but the
-  # production upgrade is GitHub OIDC federation — no stored secrets, short-lived
-  # tokens. That will be implemented in Phase 6 alongside the real AWS deploy.
+  # OIDC federation: GitHub issues a short-lived JWT token proving which repo
+  # and branch triggered this workflow. AWS validates the token and issues
+  # temporary credentials — no long-lived access keys stored anywhere.
   # ---------------------------------------------------------------------------
   build-and-push:
     name: Build & Push — ${{ matrix.service }}
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+
+    # Required for OIDC token request — GitHub issues a JWT that AWS validates
+    # instead of using long-lived access keys stored in secrets.
+    permissions:
+      id-token: write
+      contents: read
 
     strategy:
       # fail-fast: false means if one service fails to build, the others continue.
@@ -90,8 +95,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
