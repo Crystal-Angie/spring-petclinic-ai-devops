@@ -1,5 +1,5 @@
 image:
-  repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/petclinic/config-server
+  repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/config-server
 
 containerPort: 8888
 service:

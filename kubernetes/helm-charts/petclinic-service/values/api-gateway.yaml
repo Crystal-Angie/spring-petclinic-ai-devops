@@ -1,5 +1,5 @@
 image:
-  repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/petclinic/api-gateway
+  repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/api-gateway
 
 containerPort: 8080
 
