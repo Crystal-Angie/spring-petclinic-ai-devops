@@ -35,18 +35,6 @@ resource "aws_ecr_lifecycle_policy" "main" {
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last ${each.value.keep_image_count} images"
-        selection = {
-          tagStatus   = "any"
-          countType   = "imageCountMoreThan"
-          countNumber = each.value.keep_image_count
-        }
-        action = {
-          type = "expire"
-        }
-      },
-      {
-        rulePriority = 2
         description  = "Delete untagged images after ${each.value.untagged_image_expiry_days} days"
         selection = {
           tagStatus   = "untagged"
@@ -57,52 +45,24 @@ resource "aws_ecr_lifecycle_policy" "main" {
         action = {
           type = "expire"
         }
-      }
-    ]
-  })
-}
-
-# ECR Repository Policy - allow EKS nodes to pull images
-resource "aws_ecr_repository_policy" "main" {
-  for_each = var.repositories
-
-  repository = aws_ecr_repository.main[each.key].name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowEKSNodesPull"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-        }
-        Action = [
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:GetAuthorizationToken"
-        ]
       },
       {
-        Sid    = "AllowPullPush"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.allowed_push_arns
+        rulePriority = 2
+        description  = "Keep last ${each.value.keep_image_count} images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = each.value.keep_image_count
         }
-        Action = [
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:PutImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload"
-        ]
+        action = {
+          type = "expire"
+        }
       }
     ]
   })
 }
 
-# Data source for current AWS account ID
+# Data source for current AWS account ID (used in outputs)
 data "aws_caller_identity" "current" {}
 
 # CloudWatch Log Group for ECR image scanning

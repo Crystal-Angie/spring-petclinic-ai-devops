@@ -2,8 +2,10 @@
 # This module creates the foundational networking infrastructure for EKS
 
 # Data source: Get available AZs in the current region
+# us-east-1e excluded — AWS does not support EKS control plane instances there
 data "aws_availability_zones" "available" {
-  state = "available"
+  state         = "available"
+  exclude_names = ["us-east-1e"]
 }
 
 # VPC - Virtual Private Cloud
