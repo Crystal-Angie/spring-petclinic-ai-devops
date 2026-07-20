@@ -1,6 +1,6 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/discovery-server
-  tag: 4b3f34042161e5fa72a76c80d9e17a5a87b1818d
+  tag: 0cf4f70414279f20ca2e23c820b7b67bb32b18e5
 containerPort: 8761
 service:
   port: 8761
