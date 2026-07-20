@@ -1,6 +1,6 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/customers-service
-  tag: 9e4b2a59298f0356260745d2c7b85c36e5a5ffbf
+  tag: 13d12ceeb21f8e7824ffc8c6728d7189fcd08575
 containerPort: 8081
 service:
   port: 8081
