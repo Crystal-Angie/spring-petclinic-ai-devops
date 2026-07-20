@@ -83,7 +83,28 @@ kubectl rollout status statefulset/argocd-application-controller -n argocd --tim
 echo "    ArgoCD ready."
 
 # ---------------------------------------------------------------------------
-# Step 5: Apply ArgoCD project and all application manifests
+# Step 5: Install AWS Load Balancer Controller
+# Required for Ingress resources to provision ALBs. The IAM role is created
+# by Terraform; we just need to deploy the controller into kube-system.
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> Installing AWS Load Balancer Controller..."
+helm repo add eks https://aws.github.io/eks-charts 2>/dev/null
+helm repo update eks 2>/dev/null
+VPC_ID=$(terraform -chdir=terraform output -raw vpc_id)
+helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=${CLUSTER_NAME} \
+  --set serviceAccount.create=true \
+  --set serviceAccount.name=aws-load-balancer-controller \
+  --set "serviceAccount.annotations.eks\.amazonaws\.com/role-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:role/${CLUSTER_NAME}-alb-controller" \
+  --set vpcId=${VPC_ID} \
+  --set region=${AWS_REGION}
+kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=120s
+echo "    AWS Load Balancer Controller ready."
+
+# ---------------------------------------------------------------------------
+# Step 6: Apply ArgoCD project and all application manifests
 # ArgoCD will now sync all services from Git to the cluster
 # ---------------------------------------------------------------------------
 echo ""
