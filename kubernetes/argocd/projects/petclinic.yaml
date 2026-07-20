@@ -13,20 +13,14 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: monitoring
       server: https://kubernetes.default.svc
-  # Restrict what resource types ArgoCD can create in this project
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+  # Allow all namespace-scoped resources — required for the monitoring stack
+  # (kube-prometheus-stack deploys Secrets, DaemonSets, Jobs, RBAC, Webhooks, CRDs, etc.)
   namespaceResourceWhitelist:
-    - group: apps
-      kind: Deployment
-    - group: ""
-      kind: Service
-    - group: ""
-      kind: ConfigMap
-    - group: ""
-      kind: ServiceAccount
-    - group: monitoring.coreos.com
-      kind: ServiceMonitor
-    - group: monitoring.coreos.com
-      kind: PrometheusRule
+    - group: '*'
+      kind: '*'
+  # Allow cluster-scoped resources: Namespaces, CRDs, ClusterRoles, ClusterRoleBindings, Webhooks
   clusterResourceWhitelist:
-    - group: ""
-      kind: Namespace
+    - group: '*'
+      kind: '*'
