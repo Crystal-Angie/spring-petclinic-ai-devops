@@ -1,6 +1,6 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/genai-service
-  tag: 944aba2c79b085057801a9db733009303531d357
+  tag: fbfa75a3be735873d0e447334b225756a8678ae4
 containerPort: 8084
 service:
   port: 8084
