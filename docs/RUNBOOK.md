@@ -127,15 +127,19 @@ kubectl get events -n petclinic --sort-by='.lastTimestamp'
 
 ```bash
 # Open Grafana dashboard
-kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
 # Visit http://localhost:3000
 # Default credentials: admin / petclinic-admin
 
 # Open Prometheus
-kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
 # Visit http://localhost:9090
 # Check Status > Targets to see which services are being scraped
 ```
+
+Useful dashboards in Grafana:
+- **Kubernetes / Compute Resources / Namespace (Pods)** → set namespace to `petclinic` to see all services
+- **Import dashboard ID `4701`** (JVM Micrometer) → shows HTTP request rates, JVM heap, GC time per service
 
 ---
 
@@ -195,7 +199,178 @@ git push
 
 ---
 
-## Troubleshooting
+## First-Deploy Issues & Fixes (July 2026)
+
+This section documents every real error hit during the first production deployment and exactly how each was fixed. Useful as a reference and as a demonstration that the project was debugged end-to-end on real AWS.
+
+---
+
+### 1. CloudWatch Log Group Already Exists
+
+**What happened:**
+`terraform apply` created the EKS cluster, then tried to create the CloudWatch log group — but AWS had already auto-created it the moment the cluster came up with logging enabled. Terraform threw `ResourceAlreadyExistsException` and exited.
+
+**Why it happens:**
+EKS creates `/aws/eks/<cluster>/cluster` automatically when you enable cluster logging. Terraform had no dependency ordering between the two resources, so they raced.
+
+**Fix:**
+Added `aws_cloudwatch_log_group` to the `depends_on` of `aws_eks_cluster` in `terraform/modules/eks/main.tf`. Terraform now creates the log group first — EKS finds it already exists and skips creating it.
+
+**If you hit it on a re-deploy before the fix was in place:**
+```bash
+# Import the existing log group into Terraform state so it stops trying to create it
+MSYS_NO_PATHCONV=1 terraform import \
+  module.eks.aws_cloudwatch_log_group.eks_cluster \
+  /aws/eks/petclinic-prod/cluster
+terraform apply -auto-approve
+```
+> **Note:** `MSYS_NO_PATHCONV=1` is required on Windows Git Bash — without it, Bash converts the leading `/` to `C:/Program Files/Git/...`.
+
+---
+
+### 2. Deploy Script Stopped Waiting for ArgoCD
+
+**What happened:**
+The deploy script always failed halfway at the "waiting for ArgoCD" step. The original command was:
+```bash
+kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+```
+This exited immediately with an error because:
+- Right after `kubectl apply`, the ArgoCD Deployment object doesn't exist yet (takes 5–30 seconds)
+- `kubectl wait` on a non-existent resource exits with code 1 instantly — it doesn't wait for the resource to appear
+- Even if it did wait, 300 seconds (5 minutes) is not enough — a fresh EKS cluster pulling ~10 ArgoCD images typically takes 8–15 minutes
+
+**Fix:**
+Replaced with a two-phase approach in `scripts/deploy.sh`:
+1. **Existence poll** — loops every 5 seconds (up to 90s) waiting for the Deployment object to appear in Kubernetes
+2. **Readiness wait** — uses `kubectl rollout status` with a 900s (15 min) timeout, which is far more reliable than `kubectl wait`
+Also added a wait for `argocd-application-controller` (the StatefulSet that actually deploys apps), which the original script never waited for at all.
+
+---
+
+### 3. Application Source Code Was Not in Git
+
+**What happened:**
+The CI pipeline failed immediately with:
+```
+Error: No file matched to [**/pom.xml]
+```
+The `app/` directory (all 8 microservices) and `pom.xml` were on the local machine but had never been committed to the repository. The GitHub Actions runner checked out the repo and found nothing to build or test.
+
+**Why:** The files were untracked — present locally but never `git add`'d.
+
+**Fix:** Committed `pom.xml`, `app/`, `.mvn/`, `mvnw`, `mvnw.cmd`, and `docker-compose.yml`. CI now passes.
+
+---
+
+### 4. AWS Load Balancer Controller Was Not Installed
+
+**What happened:**
+After deployment, the `api-gateway` Ingress was created but had no `ADDRESS`. The ALB was never provisioned. Running `kubectl get ingressclass` returned nothing.
+
+**Why:** The deploy script never installed the AWS Load Balancer Controller. Terraform created the IAM role for it (Phase 5), but nobody installed the controller itself into the cluster.
+
+**Fix:** Added an ALB controller install step to `scripts/deploy.sh` using Helm:
+```bash
+helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=${CLUSTER_NAME} \
+  --set vpcId=${VPC_ID} \
+  --set region=${AWS_REGION} \
+  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=...
+```
+The VPC ID must be passed explicitly — the controller cannot auto-discover it from EC2 metadata in all environments.
+
+---
+
+### 5. ALB IAM Policy Was Incomplete
+
+**What happened:**
+Even after the controller was installed, the ALB kept failing to provision:
+```
+AccessDenied: not authorized to perform elasticloadbalancing:AddTags on listener/...
+AccessDenied: not authorized to perform elasticloadbalancing:DescribeListenerAttributes
+```
+The controller created the ALB and target group successfully, then hit a wall trying to configure the listener.
+
+**Why:** The hand-rolled IAM policy in `terraform/modules/alb/main.tf` covered load balancers and target groups in the `AddTags` resource list, but not listeners or listener rules. `DescribeListenerAttributes` was missing entirely.
+
+**Fix:** Replaced the hand-rolled policy with the [official AWS LBC IAM policy JSON](https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.11.0/docs/install/iam_policy.json) stored at `terraform/modules/alb/iam_policy.json`. The Terraform resource now uses `policy = file("${path.module}/iam_policy.json")`. Applied immediately with `terraform apply -target=module.alb.aws_iam_policy.alb_controller`.
+
+**Lesson:** Never hand-roll IAM policies for AWS managed controllers — use the official policy the project publishes.
+
+---
+
+### 6. ArgoCD Project Whitelist Blocked Ingress and Monitoring
+
+**What happened:**
+`api-gateway` stayed `OutOfSync` with:
+```
+resource networking.k8s.io:Ingress is not permitted in project petclinic
+```
+The `monitoring` application had dozens of failures:
+```
+resource rbac.authorization.k8s.io:ClusterRole is not permitted
+resource apiextensions.k8s.io:CustomResourceDefinition is not permitted
+namespace kube-system is not permitted
+```
+
+**Why:** The ArgoCD project (`kubernetes/argocd/projects/petclinic.yaml`) had a narrow explicit whitelist that didn't include Ingress, ClusterRoles, CRDs, DaemonSets, Secrets, Webhooks, Jobs, or the `kube-system` namespace — all of which the kube-prometheus-stack needs.
+
+**Fix:** Opened the whitelist to `*` for both `namespaceResourceWhitelist` and `clusterResourceWhitelist`, and added `kube-system` as an allowed destination. The security boundary for this project is the `sourceRepos` and `destinations` fields — restricting resource types was unnecessary overhead.
+
+---
+
+### 7. Services Starting on a Random Port
+
+**What happened:**
+Four services (`customers-service`, `vets-service`, `visits-service`, `genai-service`) were stuck in `CrashLoopBackOff`. The logs showed:
+```
+Tomcat initialized with port 0 (http)
+Tomcat started on port 41875 (http)
+```
+The pod started fine, but Kubernetes probes were checking port 8081 — the app was on a random port, so every probe failed and Kubernetes killed the pod repeatedly.
+
+**Why:** The upstream Spring PetClinic config server (at `https://github.com/spring-petclinic/spring-petclinic-microservices-config`) serves `server.port=0` for these services, meaning "let the OS pick any free port." That's fine for local Docker Compose but breaks Kubernetes probes which expect a fixed port.
+
+**Fix:** Added `SERVER_PORT=<port>` to each service's Helm values file. Environment variables override config server values in Spring Boot.
+
+---
+
+### 8. Services Connecting to Eureka on localhost
+
+**What happened:**
+Even after fixing the port, services started but couldn't register with the Eureka service registry:
+```
+Connect to http://localhost:8761 failed: Connection refused
+```
+In Kubernetes there is no `localhost:8761` — the Eureka server runs as a separate pod accessible via `http://discovery-server:8761`.
+
+**First fix attempt (wrong):**
+Added env var `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/`. This had no effect — Spring Boot's relaxed binding rules for nested map properties did not map this env var name to the actual property `eureka.client.serviceUrl.defaultZone`.
+
+**Final fix:**
+Used `SPRING_APPLICATION_JSON` instead, which Spring Boot parses directly as a JSON property source with the highest priority, bypassing the config server entirely:
+```yaml
+- name: SPRING_APPLICATION_JSON
+  value: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://discovery-server:8761/eureka/"}}}}'
+```
+Applied to all 5 services that act as Eureka clients: `customers-service`, `vets-service`, `visits-service`, `genai-service`, and `api-gateway`.
+
+**Why api-gateway mattered:** The frontend works without Eureka (it just serves HTML/JS), but form submissions route through Spring Cloud Gateway which uses `lb://customers-service` — a load-balanced URL that resolves via Eureka. Without Eureka, every form submit silently failed.
+
+---
+
+### 9. Prometheus Not Scraping Microservices
+
+**What happened:**
+Prometheus was running and scraping Kubernetes system components, but none of the petclinic services appeared in `Status → Targets`. The actuator endpoints (`/actuator/prometheus`) were confirmed working.
+
+**Why:** Prometheus Operator discovers scrape targets via `ServiceMonitor` custom resources — one per service. None had been created for the petclinic services.
+
+**Fix:** Added `templates/servicemonitor.yaml` to the shared Helm chart (`kubernetes/helm-charts/petclinic-service/`). It is enabled by default in `values.yaml`, so all 8 services automatically get a ServiceMonitor when deployed. The selector matches the existing Service labels so no changes were needed elsewhere. Verified with `helm template` before committing.
+
+---
 
 ### Pod is stuck in CrashLoopBackOff
 
