@@ -1,6 +1,6 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/config-server
-  tag: 13d12ceeb21f8e7824ffc8c6728d7189fcd08575
+  tag: 4b3f34042161e5fa72a76c80d9e17a5a87b1818d
 containerPort: 8888
 service:
   port: 8888
