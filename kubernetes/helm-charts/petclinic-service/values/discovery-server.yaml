@@ -1,10 +1,9 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/discovery-server
-
+  tag: cd7afcfc64d6d94bd914e6a2eaaaa2a17312534d
 containerPort: 8761
 service:
   port: 8761
-
 resources:
   requests:
     cpu: 100m
@@ -12,7 +11,6 @@ resources:
   limits:
     cpu: 300m
     memory: 512Mi
-
 env:
   - name: SPRING_PROFILES_ACTIVE
     value: "kubernetes"

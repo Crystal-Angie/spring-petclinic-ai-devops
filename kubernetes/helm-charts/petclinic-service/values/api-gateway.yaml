@@ -1,13 +1,11 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/api-gateway
-
+  tag: cd7afcfc64d6d94bd914e6a2eaaaa2a17312534d
 containerPort: 8080
-
 # ClusterIP — the Ingress (ALB) handles all external traffic
 service:
   type: ClusterIP
   port: 8080
-
 ingress:
   enabled: true
   annotations:
@@ -17,7 +15,6 @@ ingress:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
   # host: app.yourdomain.com  # uncomment and set in Phase 7 when domain is ready
   host: ""
-
 env:
   - name: SPRING_PROFILES_ACTIVE
     value: "kubernetes"

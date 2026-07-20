@@ -1,10 +1,9 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/visits-service
-
+  tag: cd7afcfc64d6d94bd914e6a2eaaaa2a17312534d
 containerPort: 8082
 service:
   port: 8082
-
 env:
   - name: SPRING_PROFILES_ACTIVE
     value: "kubernetes"

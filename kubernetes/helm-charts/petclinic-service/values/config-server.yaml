@@ -1,15 +1,13 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/config-server
-
+  tag: cd7afcfc64d6d94bd914e6a2eaaaa2a17312534d
 containerPort: 8888
 service:
   port: 8888
-
 # Config server intercepts all HTTP paths for config requests, which conflicts
 # with Spring Boot Actuator health paths. Use TCP probes to avoid the conflict.
 probeType: tcp
 probePort: 8888
-
 resources:
   requests:
     cpu: 100m
@@ -17,7 +15,6 @@ resources:
   limits:
     cpu: 300m
     memory: 512Mi
-
 # Longer delays — other services wait on this one at startup
 readinessProbe:
   path: /actuator/health/readiness
@@ -25,14 +22,12 @@ readinessProbe:
   periodSeconds: 10
   failureThreshold: 6
   timeoutSeconds: 5
-
 livenessProbe:
   path: /actuator/health/liveness
   initialDelaySeconds: 90
   periodSeconds: 15
   failureThreshold: 3
   timeoutSeconds: 5
-
 env:
   - name: SPRING_PROFILES_ACTIVE
     value: "kubernetes"
