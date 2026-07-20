@@ -17,3 +17,7 @@ env:
     value: "kubernetes"
   - name: CONFIG_SERVER_URL
     value: "http://config-server:8888"
+  - name: SERVER_PORT
+    value: "8084"
+  - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+    value: "http://discovery-server:8761/eureka/"
