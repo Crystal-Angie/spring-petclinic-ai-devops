@@ -1,6 +1,6 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/admin-server
-  tag: 0cf4f70414279f20ca2e23c820b7b67bb32b18e5
+  tag: 944aba2c79b085057801a9db733009303531d357
 containerPort: 9090
 service:
   port: 9090
