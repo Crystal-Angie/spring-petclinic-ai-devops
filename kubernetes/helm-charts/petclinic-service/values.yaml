@@ -52,3 +52,8 @@ securityContext:
   allowPrivilegeEscalation: false
 
 namespace: petclinic
+
+serviceMonitor:
+  enabled: true
+  path: /actuator/prometheus
+  interval: 30s
