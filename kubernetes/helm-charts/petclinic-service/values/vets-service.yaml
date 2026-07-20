@@ -1,6 +1,6 @@
 image:
   repository: 703671902584.dkr.ecr.us-east-1.amazonaws.com/petclinic/vets-service
-  tag: 2fe9d5b7e6340ac177a7459f0d12d3beaf6f9f0d
+  tag: 9e4b2a59298f0356260745d2c7b85c36e5a5ffbf
 containerPort: 8083
 service:
   port: 8083
