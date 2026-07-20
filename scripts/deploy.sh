@@ -55,8 +55,31 @@ echo ""
 echo "==> Installing ArgoCD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
-echo "    Waiting for ArgoCD to be ready..."
-kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+echo "    Waiting for ArgoCD deployments to be created (up to 90s)..."
+for deployment in argocd-server argocd-repo-server argocd-dex-server argocd-redis; do
+  echo -n "      waiting for $deployment to exist..."
+  for i in $(seq 1 18); do
+    kubectl get deployment "$deployment" -n argocd &>/dev/null && break
+    sleep 5
+    echo -n "."
+  done
+  kubectl get deployment "$deployment" -n argocd &>/dev/null || { echo " TIMEOUT"; exit 1; }
+  echo " found."
+done
+
+echo "    Waiting for ArgoCD to be ready (up to 15 min)..."
+kubectl rollout status deployment/argocd-redis         -n argocd --timeout=900s
+kubectl rollout status deployment/argocd-dex-server    -n argocd --timeout=900s
+kubectl rollout status deployment/argocd-repo-server   -n argocd --timeout=900s
+kubectl rollout status deployment/argocd-server        -n argocd --timeout=900s
+
+echo -n "    Waiting for argocd-application-controller StatefulSet..."
+for i in $(seq 1 18); do
+  kubectl get statefulset argocd-application-controller -n argocd &>/dev/null && break
+  sleep 5
+  echo -n "."
+done
+kubectl rollout status statefulset/argocd-application-controller -n argocd --timeout=900s
 echo "    ArgoCD ready."
 
 # ---------------------------------------------------------------------------
